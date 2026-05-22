@@ -1,0 +1,47 @@
+
+# Extend the default rules (recommended)
+[extend]
+useDefault = true
+
+# Add custom rules for your organization
+[[rules]]
+id = "internal-api-key"
+description = "Internal API Key"
+regex = '''(?i)INTERNAL_API_KEY\s*[=:]\s*['"]?([a-zA-Z0-9]{32,})['"]?'''
+tags = ["internal", "api"]
+
+[[rules]]
+id = "database-url"
+description = "Database connection string"
+regex = '''(?i)(postgres|mysql|mongodb):\/\/[^:]+:[^@]+@[^\s]+'''
+tags = ["database", "credentials"]
+
+# Define paths to ignore (vendored code, test fixtures)
+[allowlist]
+description = "Global allowlist"
+paths = [
+    '''vendor/''',
+    '''node_modules/''',
+    '''\.git/''',
+    '''test/fixtures/''',
+]
+
+# Ignore specific files
+[[rules.allowlist]]
+paths = [
+    '''\.env\.example''',
+    '''config/settings\.example\.py''',
+]
+
+# Ignore specific patterns (known false positives)
+[[rules.allowlist]]
+regexes = [
+    '''AKIAIOSFODNN7EXAMPLE''',  # AWS example key from docs
+    '''wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY''',  # AWS example secret
+]
+
+# Ignore specific commits (after remediation)
+[[rules.allowlist]]
+commits = [
+    "a1b2c3d4e5f6789012345678901234567890abcd",
+]
