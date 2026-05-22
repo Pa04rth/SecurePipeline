@@ -14,3 +14,5 @@ def create_item():
 @app.get("/health")
 def health_check():
     return {"status": "healthy"}
+
+AWS_KEYS = JSFHJKSDFJSDBFJDFHSHGFJGFJGDJKL
