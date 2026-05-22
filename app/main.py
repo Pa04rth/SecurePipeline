@@ -15,4 +15,5 @@ def create_item():
 def health_check():
     return {"status": "healthy"}
 
-AWS_KEY = "AKIAIOSFODNN7EXAMPLE"
+# Testing purpose only -- gitleak
+SECRET_KEY = "ghp_123456789abcdefghijklmnopqrstuvwxyz"
