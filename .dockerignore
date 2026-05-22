@@ -1,0 +1,63 @@
+venv
+cres
+docs
+tmp
+.vscode
+
+.gcloudignore
+.git
+.gitignore
+
+# Python pycache:
+__pycache__/
+# Ignored by the build system
+/setup.cfg
+
+gcp_secret.json
+/Gemfile
+/Gemfile.lock
+_site/
+__pycache__
+.coverage
+.aws-sam/
+*.orig
+.vagrant/*
+*.patch
+Vagrantfile
+
+### vscode ###
+.vscode/
+*.code-workspace
+
+## act secrets
+.secrets/
+.env
+
+### conventions ###
+venv/
+venv-*/
+v/
+
+### Frontend 
+node_modules/
+www/
+.DS_Store
+yarn-error.log
+coverage/
+
+### Dev db
+*.sqlite
+
+
+
+### Dev DBDumps
+*.sql
+*.dump
+*.backup
+
+### Neo4j
+neo4j/
+.neo4j/
+
+.mypy_cache
+tmp/

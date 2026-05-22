@@ -1,0 +1,23 @@
+[project]
+name = "securepipeline"
+version = "0.1.0"
+description = "A production-grade DevSecOps reference pipeline: SAST, DAST, SCA, IaC, container, and secrets scanning around a sample FastAPI service."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.136.1",
+    "uvicorn[standard]>=0.47.0",
+]
+
+[tool.pytest.ini_options]
+python_files = ["*_test.py"]
+testpaths = ["tests"]
+
+[dependency-groups]
+dev = [
+    "black>=26.5.1",
+    "httpx>=0.28.1",
+    "pytest>=9.0.3",
+    "pytest-cov>=7.1.0",
+    "ruff>=0.15.14",
+]
