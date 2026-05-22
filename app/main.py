@@ -15,4 +15,4 @@ def create_item():
 def health_check():
     return {"status": "healthy"}
 
-AWS_KEYS = JSFHJKSDFJSDBFJDFHSHGFJGFJGDJKL
+AWS_KEY = "AKIAIOSFODNN7EXAMPLE"
