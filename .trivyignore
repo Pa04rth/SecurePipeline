@@ -1,0 +1,5 @@
+# Trivy ignore file.
+# Suppress a specific CVE by adding one ID per line, with a justification comment.
+# Format:
+#   # <YYYY-MM-DD> <owner> — <reason this risk is accepted>
+#   CVE-YYYY-NNNNN
