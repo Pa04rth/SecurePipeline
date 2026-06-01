@@ -1,0 +1,3 @@
+AVD-AWS-0040 # Public EKS endpoint required for laptop kubectl; mitigated by /32 CIDR. (See CKV_AWS_39.)
+AVD-AWS-0041 # Rule misfires on /32 single-host CIDRs; this is the most-restrictive setting possible.
+AVD-AWS-0104 # EKS node egress required for ECR pulls, EKS API, AWS APIs. Egress filtering belongs at pod-level via NetworkPolicies.

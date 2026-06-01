@@ -11,3 +11,11 @@ build/
 *.egg-info/
 .vscode/
 .idea/
+terraform.tfstate
+terraform.tfstate.backup
+terraform.tfvars
+.terraform/
+crash.log 
+*.tfvars
+infra/vendor
+.claude/

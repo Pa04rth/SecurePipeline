@@ -1,0 +1,142 @@
+name: IaC Scans
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "infra/terraform/**"
+      - ".github/workflows/iac.yml"
+  pull_request:
+    paths:
+      - "infra/terraform/**"
+      - ".github/workflows/iac.yml"
+
+concurrency:
+  group: iac-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  security-events: write
+  pull-requests: write
+
+jobs:
+  fmt-validate:
+    name: Terraform fmt + validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Vendor modules
+        run: |
+          mkdir -p infra/vendor
+          git clone --branch v5.21.0 --depth 1 \
+            https://github.com/terraform-aws-modules/terraform-aws-vpc.git \
+            infra/vendor/terraform-aws-vpc
+          git clone --branch v20.31.6 --depth 1 \
+            https://github.com/terraform-aws-modules/terraform-aws-eks.git \
+            infra/vendor/terraform-aws-eks
+          git clone --branch v2.1.0 --depth 1 \
+            https://github.com/terraform-aws-modules/terraform-aws-kms.git \
+            infra/vendor/terraform-aws-kms
+          # Re-apply the EKS module patch (vendor README documents this)
+          sed -i 's|source  = "terraform-aws-modules/kms/aws"|source  = "../terraform-aws-kms"|' \
+            infra/vendor/terraform-aws-eks/main.tf
+          sed -i '/^  version = "2.1.0"$/d' infra/vendor/terraform-aws-eks/main.tf
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.10.0
+
+      - name: terraform fmt
+        working-directory: infra/terraform
+        run: terraform fmt -check -recursive
+
+      - name: terraform init (no backend)
+        working-directory: infra/terraform
+        run: terraform init -backend=false
+
+      - name: terraform validate
+        working-directory: infra/terraform
+        run: terraform validate
+
+  checkov:
+    name: Checkov (IaC policy)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Vendor modules
+        run: |
+          mkdir -p infra/vendor
+          git clone --branch v5.21.0 --depth 1 \
+            https://github.com/terraform-aws-modules/terraform-aws-vpc.git \
+            infra/vendor/terraform-aws-vpc
+          git clone --branch v20.31.6 --depth 1 \
+            https://github.com/terraform-aws-modules/terraform-aws-eks.git \
+            infra/vendor/terraform-aws-eks
+          git clone --branch v2.1.0 --depth 1 \
+            https://github.com/terraform-aws-modules/terraform-aws-kms.git \
+            infra/vendor/terraform-aws-kms
+          # Re-apply the EKS module patch (vendor README documents this)
+          sed -i 's|source  = "terraform-aws-modules/kms/aws"|source  = "../terraform-aws-kms"|' \
+            infra/vendor/terraform-aws-eks/main.tf
+          sed -i '/^  version = "2.1.0"$/d' infra/vendor/terraform-aws-eks/main.tf
+
+      - name: Run Checkov
+        uses: bridgecrewio/checkov-action@master
+        with:
+          directory: infra/terraform
+          framework: terraform
+          output_format: sarif
+          output_file_path: checkov.sarif
+          soft_fail: false # fail the job on findings
+          quiet: true
+          config_file: infra/terraform/.checkov.yaml
+
+      - name: Upload Checkov SARIF
+        if: always() # upload even if Checkov failed
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: checkov.sarif
+          category: checkov
+
+  trivy:
+    name: Trivy (tfsec/IaC)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Vendor modules
+        run: |
+          mkdir -p infra/vendor
+          git clone --branch v5.21.0 --depth 1 \
+            https://github.com/terraform-aws-modules/terraform-aws-vpc.git \
+            infra/vendor/terraform-aws-vpc
+          git clone --branch v20.31.6 --depth 1 \
+            https://github.com/terraform-aws-modules/terraform-aws-eks.git \
+            infra/vendor/terraform-aws-eks
+          git clone --branch v2.1.0 --depth 1 \
+            https://github.com/terraform-aws-modules/terraform-aws-kms.git \
+            infra/vendor/terraform-aws-kms
+          # Re-apply the EKS module patch (vendor README documents this)
+          sed -i 's|source  = "terraform-aws-modules/kms/aws"|source  = "../terraform-aws-kms"|' \
+            infra/vendor/terraform-aws-eks/main.tf
+          sed -i '/^  version = "2.1.0"$/d' infra/vendor/terraform-aws-eks/main.tf
+      - name: Run Trivy config scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: config
+          scan-ref: infra/terraform
+          severity: HIGH,CRITICAL
+          exit-code: "1" # fail the job on findings
+          format: sarif
+          output: trivy-iac.sarif
+          trivyignores: infra/terraform/.trivyignore
+
+      - name: Upload Trivy SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-iac.sarif
+          category: trivy-iac

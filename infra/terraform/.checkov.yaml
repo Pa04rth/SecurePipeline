@@ -1,0 +1,12 @@
+skip-check:
+  - CKV_TF_1 # Modules vendored locally due to go-getter SHA-fetch bug; pinning enforced via vendor README
+  - CKV_TF_2
+
+  - CKV_AWS_39 # Public EKS endpoint required for laptop kubectl; mitigated by CIDR restriction to operator IP
+
+  - CKV_AWS_58 # Encryption IS enabled via provider_key_arn; Checkov can't trace variable-fed config through the module
+  - CKV_AWS_356 # cni_ipv6_policy: VPC CNI requires broad EC2 perms for pod ENI mgmt; module-internal, not tightenable
+  - CKV_AWS_111 # same: cni_ipv6_policy is intrinsic to CNI operation
+  - CKV2_AWS_5 # EKS SGs attached at apply via vpc_config / launch template; static analysis can't trace
+  - CKV2_AWS_19 # EIP attached to NAT GW (not EC2); rule is outdated
+  - CKV2_AWS_12 # VPC module's aws_default_security_group.this has no rules → all traffic restricted (verified in plan)
