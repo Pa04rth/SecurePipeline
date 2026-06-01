@@ -39,16 +39,26 @@ jobs:
           git clone --branch v2.1.0 --depth 1 \
             https://github.com/terraform-aws-modules/terraform-aws-kms.git \
             infra/vendor/terraform-aws-kms
-          # Patch the EKS module's KMS submodule reference to point at the vendored copy.
-          # 1) Rewrite the source. 2) Delete the version line scoped to the kms module block.
-          sed -i 's|source  = "terraform-aws-modules/kms/aws"|source  = "../terraform-aws-kms"|' \
-            infra/vendor/terraform-aws-eks/main.tf
-          sed -i '/^module "kms"/,/^}/{ /^  version *= *".*"$/d }' \
-            infra/vendor/terraform-aws-eks/main.tf
-          # Sanity check: confirm the kms block no longer contains a version line.
-          if awk '/^module "kms"/,/^}/' infra/vendor/terraform-aws-eks/main.tf | grep -q '^  version'; then
-            echo "ERROR: version line still present in module \"kms\" block; sed patch failed."
-            awk '/^module "kms"/,/^}/' infra/vendor/terraform-aws-eks/main.tf
+          # Patch the EKS module's KMS submodule reference to point at the vendored copy:
+          # rewrite the source AND drop the version line (invalid for local sources).
+          # awk handles the "scoped to module block" case sed can't do cleanly.
+          awk '
+            /^module "kms"/                       { in_kms = 1 }
+            in_kms && /^}/                        { in_kms = 0; print; next }
+            in_kms && /terraform-aws-modules\/kms\/aws/ {
+              sub(/"terraform-aws-modules\/kms\/aws"/, "\"../terraform-aws-kms\"")
+              print; next
+            }
+            in_kms && /^[[:space:]]+version[[:space:]]*=/ { next }
+            { print }
+          ' infra/vendor/terraform-aws-eks/main.tf > infra/vendor/terraform-aws-eks/main.tf.patched
+          mv infra/vendor/terraform-aws-eks/main.tf.patched infra/vendor/terraform-aws-eks/main.tf
+          # Show the patched kms block + sanity-check there's no version left in it.
+          echo "── Patched kms block ──"
+          awk '/^module "kms"/,/^}/' infra/vendor/terraform-aws-eks/main.tf
+          echo "────────────────────────"
+          if awk '/^module "kms"/,/^}/' infra/vendor/terraform-aws-eks/main.tf | grep -qE '^[[:space:]]+version'; then
+            echo "ERROR: version line still present in module \"kms\" block."
             exit 1
           fi
 
@@ -86,16 +96,26 @@ jobs:
           git clone --branch v2.1.0 --depth 1 \
             https://github.com/terraform-aws-modules/terraform-aws-kms.git \
             infra/vendor/terraform-aws-kms
-          # Patch the EKS module's KMS submodule reference to point at the vendored copy.
-          # 1) Rewrite the source. 2) Delete the version line scoped to the kms module block.
-          sed -i 's|source  = "terraform-aws-modules/kms/aws"|source  = "../terraform-aws-kms"|' \
-            infra/vendor/terraform-aws-eks/main.tf
-          sed -i '/^module "kms"/,/^}/{ /^  version *= *".*"$/d }' \
-            infra/vendor/terraform-aws-eks/main.tf
-          # Sanity check: confirm the kms block no longer contains a version line.
-          if awk '/^module "kms"/,/^}/' infra/vendor/terraform-aws-eks/main.tf | grep -q '^  version'; then
-            echo "ERROR: version line still present in module \"kms\" block; sed patch failed."
-            awk '/^module "kms"/,/^}/' infra/vendor/terraform-aws-eks/main.tf
+          # Patch the EKS module's KMS submodule reference to point at the vendored copy:
+          # rewrite the source AND drop the version line (invalid for local sources).
+          # awk handles the "scoped to module block" case sed can't do cleanly.
+          awk '
+            /^module "kms"/                       { in_kms = 1 }
+            in_kms && /^}/                        { in_kms = 0; print; next }
+            in_kms && /terraform-aws-modules\/kms\/aws/ {
+              sub(/"terraform-aws-modules\/kms\/aws"/, "\"../terraform-aws-kms\"")
+              print; next
+            }
+            in_kms && /^[[:space:]]+version[[:space:]]*=/ { next }
+            { print }
+          ' infra/vendor/terraform-aws-eks/main.tf > infra/vendor/terraform-aws-eks/main.tf.patched
+          mv infra/vendor/terraform-aws-eks/main.tf.patched infra/vendor/terraform-aws-eks/main.tf
+          # Show the patched kms block + sanity-check there's no version left in it.
+          echo "── Patched kms block ──"
+          awk '/^module "kms"/,/^}/' infra/vendor/terraform-aws-eks/main.tf
+          echo "────────────────────────"
+          if awk '/^module "kms"/,/^}/' infra/vendor/terraform-aws-eks/main.tf | grep -qE '^[[:space:]]+version'; then
+            echo "ERROR: version line still present in module \"kms\" block."
             exit 1
           fi
 
@@ -135,16 +155,26 @@ jobs:
           git clone --branch v2.1.0 --depth 1 \
             https://github.com/terraform-aws-modules/terraform-aws-kms.git \
             infra/vendor/terraform-aws-kms
-          # Patch the EKS module's KMS submodule reference to point at the vendored copy.
-          # 1) Rewrite the source. 2) Delete the version line scoped to the kms module block.
-          sed -i 's|source  = "terraform-aws-modules/kms/aws"|source  = "../terraform-aws-kms"|' \
-            infra/vendor/terraform-aws-eks/main.tf
-          sed -i '/^module "kms"/,/^}/{ /^  version *= *".*"$/d }' \
-            infra/vendor/terraform-aws-eks/main.tf
-          # Sanity check: confirm the kms block no longer contains a version line.
-          if awk '/^module "kms"/,/^}/' infra/vendor/terraform-aws-eks/main.tf | grep -q '^  version'; then
-            echo "ERROR: version line still present in module \"kms\" block; sed patch failed."
-            awk '/^module "kms"/,/^}/' infra/vendor/terraform-aws-eks/main.tf
+          # Patch the EKS module's KMS submodule reference to point at the vendored copy:
+          # rewrite the source AND drop the version line (invalid for local sources).
+          # awk handles the "scoped to module block" case sed can't do cleanly.
+          awk '
+            /^module "kms"/                       { in_kms = 1 }
+            in_kms && /^}/                        { in_kms = 0; print; next }
+            in_kms && /terraform-aws-modules\/kms\/aws/ {
+              sub(/"terraform-aws-modules\/kms\/aws"/, "\"../terraform-aws-kms\"")
+              print; next
+            }
+            in_kms && /^[[:space:]]+version[[:space:]]*=/ { next }
+            { print }
+          ' infra/vendor/terraform-aws-eks/main.tf > infra/vendor/terraform-aws-eks/main.tf.patched
+          mv infra/vendor/terraform-aws-eks/main.tf.patched infra/vendor/terraform-aws-eks/main.tf
+          # Show the patched kms block + sanity-check there's no version left in it.
+          echo "── Patched kms block ──"
+          awk '/^module "kms"/,/^}/' infra/vendor/terraform-aws-eks/main.tf
+          echo "────────────────────────"
+          if awk '/^module "kms"/,/^}/' infra/vendor/terraform-aws-eks/main.tf | grep -qE '^[[:space:]]+version'; then
+            echo "ERROR: version line still present in module \"kms\" block."
             exit 1
           fi
       - name: Run Trivy config scan
