@@ -39,10 +39,18 @@ jobs:
           git clone --branch v2.1.0 --depth 1 \
             https://github.com/terraform-aws-modules/terraform-aws-kms.git \
             infra/vendor/terraform-aws-kms
-          # Re-apply the EKS module patch (vendor README documents this)
+          # Patch the EKS module's KMS submodule reference to point at the vendored copy.
+          # 1) Rewrite the source. 2) Delete the version line scoped to the kms module block.
           sed -i 's|source  = "terraform-aws-modules/kms/aws"|source  = "../terraform-aws-kms"|' \
             infra/vendor/terraform-aws-eks/main.tf
-          sed -i '/^  version = "2.1.0"$/d' infra/vendor/terraform-aws-eks/main.tf
+          sed -i '/^module "kms"/,/^}/{ /^  version *= *".*"$/d }' \
+            infra/vendor/terraform-aws-eks/main.tf
+          # Sanity check: confirm the kms block no longer contains a version line.
+          if awk '/^module "kms"/,/^}/' infra/vendor/terraform-aws-eks/main.tf | grep -q '^  version'; then
+            echo "ERROR: version line still present in module \"kms\" block; sed patch failed."
+            awk '/^module "kms"/,/^}/' infra/vendor/terraform-aws-eks/main.tf
+            exit 1
+          fi
 
       - uses: hashicorp/setup-terraform@v3
         with:
@@ -78,10 +86,18 @@ jobs:
           git clone --branch v2.1.0 --depth 1 \
             https://github.com/terraform-aws-modules/terraform-aws-kms.git \
             infra/vendor/terraform-aws-kms
-          # Re-apply the EKS module patch (vendor README documents this)
+          # Patch the EKS module's KMS submodule reference to point at the vendored copy.
+          # 1) Rewrite the source. 2) Delete the version line scoped to the kms module block.
           sed -i 's|source  = "terraform-aws-modules/kms/aws"|source  = "../terraform-aws-kms"|' \
             infra/vendor/terraform-aws-eks/main.tf
-          sed -i '/^  version = "2.1.0"$/d' infra/vendor/terraform-aws-eks/main.tf
+          sed -i '/^module "kms"/,/^}/{ /^  version *= *".*"$/d }' \
+            infra/vendor/terraform-aws-eks/main.tf
+          # Sanity check: confirm the kms block no longer contains a version line.
+          if awk '/^module "kms"/,/^}/' infra/vendor/terraform-aws-eks/main.tf | grep -q '^  version'; then
+            echo "ERROR: version line still present in module \"kms\" block; sed patch failed."
+            awk '/^module "kms"/,/^}/' infra/vendor/terraform-aws-eks/main.tf
+            exit 1
+          fi
 
       - name: Run Checkov
         uses: bridgecrewio/checkov-action@master
@@ -119,10 +135,18 @@ jobs:
           git clone --branch v2.1.0 --depth 1 \
             https://github.com/terraform-aws-modules/terraform-aws-kms.git \
             infra/vendor/terraform-aws-kms
-          # Re-apply the EKS module patch (vendor README documents this)
+          # Patch the EKS module's KMS submodule reference to point at the vendored copy.
+          # 1) Rewrite the source. 2) Delete the version line scoped to the kms module block.
           sed -i 's|source  = "terraform-aws-modules/kms/aws"|source  = "../terraform-aws-kms"|' \
             infra/vendor/terraform-aws-eks/main.tf
-          sed -i '/^  version = "2.1.0"$/d' infra/vendor/terraform-aws-eks/main.tf
+          sed -i '/^module "kms"/,/^}/{ /^  version *= *".*"$/d }' \
+            infra/vendor/terraform-aws-eks/main.tf
+          # Sanity check: confirm the kms block no longer contains a version line.
+          if awk '/^module "kms"/,/^}/' infra/vendor/terraform-aws-eks/main.tf | grep -q '^  version'; then
+            echo "ERROR: version line still present in module \"kms\" block; sed patch failed."
+            awk '/^module "kms"/,/^}/' infra/vendor/terraform-aws-eks/main.tf
+            exit 1
+          fi
       - name: Run Trivy config scan
         uses: aquasecurity/trivy-action@master
         with:
