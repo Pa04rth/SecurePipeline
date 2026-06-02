@@ -1,0 +1,33 @@
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: require-signed-images
+  annotations:
+    policies.kyverno.io/title: Require signed SecurePipe images
+    policies.kyverno.io/category: Supply Chain Security
+    policies.kyverno.io/severity: high
+    policies.kyverno.io/description: >-
+      Reject any Pod that references a SecurePipe image lacking a valid
+      cosign signature from this repo's build.yml workflow.
+spec:
+  validationFailureAction: Enforce # later Enforce
+  webhookTimeoutSeconds: 30
+  rules:
+    - name: verify-securepipe-image-signatures
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+      verifyImages:
+        - imageReferences:
+            - "ghcr.io/pa04rth/securepipeline*"
+          mutateDigest: True #Remove it from false when Enforce
+          attestors:
+            - count: 1
+              entries:
+                - keyless:
+                    subject: "https://github.com/Pa04rth/SecurePipeline/.github/workflows/build.yml@*"
+                    issuer: "https://token.actions.githubusercontent.com"
+                    rekor:
+                      url: "https://rekor.sigstore.dev"

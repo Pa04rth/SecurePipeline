@@ -12,6 +12,7 @@ build/
 .vscode/
 .idea/
 terraform.tfstate
+.terraform*
 terraform.tfstate.backup
 terraform.tfvars
 .terraform/

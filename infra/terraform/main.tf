@@ -106,7 +106,7 @@ module "eks" {
   # API endpoint: public (CIDR-restricted) 
   #Public endpoint required for laptop kubectl access during demo; mitigated by CIDR restriction to operator IP (CKV_AWS_38 passes)
   cluster_endpoint_public_access       = true
-  cluster_endpoint_public_access_cidrs = ["106.214.8.92/32"]
+  cluster_endpoint_public_access_cidrs = ["106.214.8.88/32"]
 
   # Audit logging
   cluster_enabled_log_types = [
@@ -149,7 +149,7 @@ module "eks" {
     coredns            = { most_recent = true }
     kube-proxy         = { most_recent = true }
     vpc-cni            = { most_recent = true }
-    aws-ebs-csi-driver = { most_recent = true }
+    # aws-ebs-csi-driver = { most_recent = true }
   }
 
   tags = {
