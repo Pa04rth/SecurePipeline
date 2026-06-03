@@ -1,5 +1,6 @@
 from starlette.middleware.base import BaseHTTPMiddleware
 
+
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request, call_next):
         response = await call_next(request)
@@ -13,10 +14,13 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response.headers.setdefault("X-Frame-Options", "DENY")
         return response
 
+
 app.add_middleware(SecurityHeadersMiddleware)
 
 from fastapi import FastAPI
+
 app = FastAPI()
+
 
 @app.get("/items/{item_id}")
 def get_item(item_id: str):
@@ -31,4 +35,3 @@ def create_item():
 @app.get("/health")
 def health_check():
     return {"status": "ok"}
-
