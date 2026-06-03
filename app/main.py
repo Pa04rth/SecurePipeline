@@ -1,3 +1,4 @@
+from fastapi import FastAPI
 from starlette.middleware.base import BaseHTTPMiddleware
 
 
@@ -15,11 +16,8 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         return response
 
 
-app.add_middleware(SecurityHeadersMiddleware)
-
-from fastapi import FastAPI
-
 app = FastAPI()
+app.add_middleware(SecurityHeadersMiddleware)
 
 
 @app.get("/items/{item_id}")
