@@ -1,0 +1,4 @@
+# rule_id    threshold       comment
+10202       OFF             Anti-CSRF tokens — stateless API; not applicable
+10038       WARN            CSP not set — acceptable for API, set for any future HTML responses
+10049       IGNORE          Storable but Non-Cacheable Content — API responses, intentional
