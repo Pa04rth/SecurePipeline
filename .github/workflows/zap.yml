@@ -49,7 +49,7 @@ jobs:
         uses: zaproxy/action-baseline@v0.13.0
         with:
           target: "http://localhost:8000"
-          cmd_options: "-a -J report_json.json -r report_html.html -w report_md.md"
+          cmd_options: "-a"
           rules_file_name: ".zap/rules.tsv"
           fail_action: true # PR red on findings ≥ WARN per rules.tsv
           allow_issue_writing: false
