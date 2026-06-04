@@ -10,7 +10,7 @@ on:
       - ".zap/**"
       - ".github/workflows/zap.yml"
   schedule:
-    - cron: "0 3 * * *" # 03:00 UTC
+    - cron: "0 3 * * *" # 03:00 UTC daily
   workflow_dispatch: {}
 
 concurrency:
@@ -19,44 +19,76 @@ concurrency:
 
 permissions:
   contents: read
-  security-events: write
-  pull-requests: write
-  issues: write
+  security-events: write # required for SARIF upload to Code Scanning
+  pull-requests: write # required for inline PR annotations
 
 jobs:
   zap-baseline:
     name: ZAP baseline scan
     runs-on: ubuntu-latest
 
-    services:
-      app:
-        image: ghcr.io/pa04rth/securepipeline:latest
-        ports:
-          - 8000:8000
-        # ZAP only starts after the service container reports healthy.
-        options: >-
-          --health-cmd "python -c \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/health', timeout=3).status == 200 else 1)\""
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 20
-          --health-start-period 10s
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: ZAP baseline scan
-        uses: zaproxy/action-baseline@v0.13.0
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
         with:
-          target: "http://localhost:8000"
-          cmd_options: "-a"
-          rules_file_name: ".zap/rules.tsv"
-          fail_action: true # PR red on findings ≥ WARN per rules.tsv
-          allow_issue_writing: false
-          artifact_name: zap-baseline
+          enable-cache: true
+
+      - name: Install dependencies (PR source)
+        run: uv sync --locked --no-dev
+
+      - name: Start app in background
+        run: |
+          set -euo pipefail
+          nohup uv run uvicorn app.main:app --host 0.0.0.0 --port 8000 \
+            > app.log 2>&1 &
+          echo $! > app.pid
+          # Wait up to 60s for /health to respond 200.
+          for i in $(seq 1 60); do
+            if curl -fsS http://localhost:8000/health > /dev/null; then
+              echo "App is up after ${i}s"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "App failed to come up within 60s. Log follows:"
+          cat app.log
+          exit 1
+
+      - name: Run ZAP baseline scan
+        id: zap
+        run: |
+          # workspace must be writable by ZAP's non-root user inside the container
+          chmod -R a+rw "${GITHUB_WORKSPACE}"
+          set +e
+          docker run --rm --network=host \
+            -v "${GITHUB_WORKSPACE}:/zap/wrk:rw" \
+            ghcr.io/zaproxy/zaproxy:stable \
+            zap-baseline.py \
+              -t http://localhost:8000 \
+              -c .zap/rules.tsv \
+              -J report_json.json \
+              -r report_html.html \
+              -w report_md.md \
+              -a
+          zap_exit=$?
+          set -e
+          echo "zap_exit=${zap_exit}" >> "$GITHUB_OUTPUT"
+          echo "ZAP exit code: ${zap_exit} (0=clean, 1=warn+, 2=error)"
+          # Don't fail the step here — let SARIF + artifact upload run first.
+          # We gate at the final step below.
+
+      - name: Stop background app
+        if: always()
+        run: |
+          if [ -f app.pid ]; then
+            kill "$(cat app.pid)" 2>/dev/null || true
+          fi
 
       - name: Convert ZAP JSON → SARIF
-        if: always() # run even when ZAP failed the severity gate
+        if: always()
         uses: SvanBoxel/zaproxy-to-ghas@v1.0.2
         # reads report_json.json from the workspace, writes results.sarif
 
@@ -76,5 +108,12 @@ jobs:
             report_html.html
             report_md.md
             report_json.json
+            app.log
           retention-days: 14
           if-no-files-found: warn
+
+      - name: Gate on ZAP exit code
+        if: steps.zap.outputs.zap_exit != '0'
+        run: |
+          echo "ZAP returned exit code ${{ steps.zap.outputs.zap_exit }} — failing the job."
+          exit 1
