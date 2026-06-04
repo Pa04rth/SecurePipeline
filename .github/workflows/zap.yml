@@ -89,8 +89,71 @@ jobs:
 
       - name: Convert ZAP JSON → SARIF
         if: always()
-        uses: SvanBoxel/zaproxy-to-ghas@v1.0.2
-        # reads report_json.json from the workspace, writes results.sarif
+        run: |
+          python3 - <<'PY'
+          import json, sys, os
+          src = "report_json.json"
+          if not os.path.exists(src):
+              print(f"::warning::No {src} found; writing empty SARIF")
+              sarif = {"version": "2.1.0",
+                       "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+                       "runs": [{"tool": {"driver": {"name": "OWASP ZAP",
+                                                     "informationUri": "https://www.zaproxy.org/",
+                                                     "rules": []}},
+                                 "results": []}]}
+              json.dump(sarif, open("results.sarif", "w"))
+              sys.exit(0)
+
+          z = json.load(open(src))
+          rules, results = {}, []
+          # Code Scanning requires file-relative URIs; DAST findings don't map to source
+          # files, so we annotate them all on the app entrypoint as a placeholder.
+          PLACEHOLDER_URI = "app/main.py"
+          LEVEL_MAP = {"3": "error", "2": "warning", "1": "note", "0": "none"}
+
+          for site in z.get("site", []):
+              for alert in site.get("alerts", []):
+                  rid = f"zap-{alert.get('pluginid', 'unknown')}"
+                  if rid not in rules:
+                      rules[rid] = {
+                          "id": rid,
+                          "name": alert.get("alert", rid),
+                          "shortDescription": {"text": alert.get("alert", rid)[:200]},
+                          "fullDescription": {"text": (alert.get("desc") or "")[:1000]},
+                          "helpUri": (alert.get("reference") or "https://www.zaproxy.org/").split("\n")[0],
+                          "defaultConfiguration": {
+                              "level": LEVEL_MAP.get(str(alert.get("riskcode", "0")), "note")
+                          },
+                      }
+                  level = LEVEL_MAP.get(str(alert.get("riskcode", "0")), "note")
+                  for inst in alert.get("instances", []):
+                      results.append({
+                          "ruleId": rid,
+                          "level": level,
+                          "message": {
+                              "text": f"{alert.get('alert')} — {inst.get('uri', '')} "
+                                      f"({inst.get('method', '')})"
+                          },
+                          "locations": [{
+                              "physicalLocation": {
+                                  "artifactLocation": {"uri": PLACEHOLDER_URI}
+                              }
+                          }],
+                      })
+
+          sarif = {
+              "version": "2.1.0",
+              "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+              "runs": [{
+                  "tool": {"driver": {"name": "OWASP ZAP",
+                                      "informationUri": "https://www.zaproxy.org/",
+                                      "rules": list(rules.values())}},
+                  "results": results,
+              }],
+          }
+          json.dump(sarif, open("results.sarif", "w"), indent=2)
+          print(f"Wrote {len(results)} ZAP finding(s) across {len(rules)} rule(s) to results.sarif")
+          PY
 
       - name: Upload ZAP SARIF to Code Scanning
         if: always()
