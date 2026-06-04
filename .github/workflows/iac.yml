@@ -136,6 +136,13 @@ jobs:
         with:
           sarif_file: checkov.sarif
           category: checkov
+      - name: Upload Checkov SARIF as artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sarif-checkov
+          path: checkov.sarif/results_sarif.sarif
+          retention-days: 14
 
   trivy:
     name: Trivy (tfsec/IaC)
