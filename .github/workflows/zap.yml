@@ -162,7 +162,15 @@ jobs:
           sarif_file: results.sarif
           category: zap-baseline
 
-      - name: Upload ZAP reports as artifact
+      - name: Upload ZAP SARIF as artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sarif-zap
+          path: results.sarif
+          retention-days: 14
+
+      - name: Upload ZAP human reports as artifact
         if: always()
         uses: actions/upload-artifact@v4
         with:
