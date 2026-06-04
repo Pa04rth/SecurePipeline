@@ -1,0 +1,182 @@
+name: DAST (OWASP ZAP baseline)
+
+on:
+  pull_request:
+    paths:
+      - "app/**"
+      - "Dockerfile**"
+      - "pyproject.toml"
+      - "uv.lock"
+      - ".zap/**"
+      - ".github/workflows/zap.yml"
+  schedule:
+    - cron: "0 3 * * *" # 03:00 UTC daily
+  workflow_dispatch: {}
+
+concurrency:
+  group: zap-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  security-events: write # required for SARIF upload to Code Scanning
+  pull-requests: write # required for inline PR annotations
+
+jobs:
+  zap-baseline:
+    name: ZAP baseline scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+
+      - name: Install dependencies (PR source)
+        run: uv sync --locked --no-dev
+
+      - name: Start app in background
+        run: |
+          set -euo pipefail
+          nohup uv run uvicorn app.main:app --host 0.0.0.0 --port 8000 \
+            > app.log 2>&1 &
+          echo $! > app.pid
+          # Wait up to 60s for /health to respond 200.
+          for i in $(seq 1 60); do
+            if curl -fsS http://localhost:8000/health > /dev/null; then
+              echo "App is up after ${i}s"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "App failed to come up within 60s. Log follows:"
+          cat app.log
+          exit 1
+
+      - name: Run ZAP baseline scan
+        id: zap
+        run: |
+          # workspace must be writable by ZAP's non-root user inside the container
+          chmod -R a+rw "${GITHUB_WORKSPACE}"
+          set +e
+          docker run --rm --network=host \
+            -v "${GITHUB_WORKSPACE}:/zap/wrk:rw" \
+            ghcr.io/zaproxy/zaproxy:stable \
+            zap-baseline.py \
+              -t http://localhost:8000 \
+              -c .zap/rules.tsv \
+              -J report_json.json \
+              -r report_html.html \
+              -w report_md.md \
+              -a
+          zap_exit=$?
+          set -e
+          echo "zap_exit=${zap_exit}" >> "$GITHUB_OUTPUT"
+          echo "ZAP exit code: ${zap_exit} (0=clean, 1=warn+, 2=error)"
+          # Don't fail the step here — let SARIF + artifact upload run first.
+          # We gate at the final step below.
+
+      - name: Stop background app
+        if: always()
+        run: |
+          if [ -f app.pid ]; then
+            kill "$(cat app.pid)" 2>/dev/null || true
+          fi
+
+      - name: Convert ZAP JSON → SARIF
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import json, sys, os
+          src = "report_json.json"
+          if not os.path.exists(src):
+              print(f"::warning::No {src} found; writing empty SARIF")
+              sarif = {"version": "2.1.0",
+                       "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+                       "runs": [{"tool": {"driver": {"name": "OWASP ZAP",
+                                                     "informationUri": "https://www.zaproxy.org/",
+                                                     "rules": []}},
+                                 "results": []}]}
+              json.dump(sarif, open("results.sarif", "w"))
+              sys.exit(0)
+
+          z = json.load(open(src))
+          rules, results = {}, []
+          # Code Scanning requires file-relative URIs; DAST findings don't map to source
+          # files, so we annotate them all on the app entrypoint as a placeholder.
+          PLACEHOLDER_URI = "app/main.py"
+          LEVEL_MAP = {"3": "error", "2": "warning", "1": "note", "0": "none"}
+
+          for site in z.get("site", []):
+              for alert in site.get("alerts", []):
+                  rid = f"zap-{alert.get('pluginid', 'unknown')}"
+                  if rid not in rules:
+                      rules[rid] = {
+                          "id": rid,
+                          "name": alert.get("alert", rid),
+                          "shortDescription": {"text": alert.get("alert", rid)[:200]},
+                          "fullDescription": {"text": (alert.get("desc") or "")[:1000]},
+                          "helpUri": (alert.get("reference") or "https://www.zaproxy.org/").split("\n")[0],
+                          "defaultConfiguration": {
+                              "level": LEVEL_MAP.get(str(alert.get("riskcode", "0")), "note")
+                          },
+                      }
+                  level = LEVEL_MAP.get(str(alert.get("riskcode", "0")), "note")
+                  for inst in alert.get("instances", []):
+                      results.append({
+                          "ruleId": rid,
+                          "level": level,
+                          "message": {
+                              "text": f"{alert.get('alert')} — {inst.get('uri', '')} "
+                                      f"({inst.get('method', '')})"
+                          },
+                          "locations": [{
+                              "physicalLocation": {
+                                  "artifactLocation": {"uri": PLACEHOLDER_URI}
+                              }
+                          }],
+                      })
+
+          sarif = {
+              "version": "2.1.0",
+              "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+              "runs": [{
+                  "tool": {"driver": {"name": "OWASP ZAP",
+                                      "informationUri": "https://www.zaproxy.org/",
+                                      "rules": list(rules.values())}},
+                  "results": results,
+              }],
+          }
+          json.dump(sarif, open("results.sarif", "w"), indent=2)
+          print(f"Wrote {len(results)} ZAP finding(s) across {len(rules)} rule(s) to results.sarif")
+          PY
+
+      - name: Upload ZAP SARIF to Code Scanning
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: results.sarif
+          category: zap-baseline
+
+      - name: Upload ZAP reports as artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: zap-baseline-reports
+          path: |
+            report_html.html
+            report_md.md
+            report_json.json
+            app.log
+          retention-days: 14
+          if-no-files-found: warn
+
+      - name: Gate on ZAP exit code
+        if: steps.zap.outputs.zap_exit != '0'
+        run: |
+          echo "ZAP returned exit code ${{ steps.zap.outputs.zap_exit }} — failing the job."
+          exit 1

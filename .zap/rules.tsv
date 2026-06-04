@@ -1,0 +1,5 @@
+# ZAP baseline rule suppressions for SecurePipe.
+# Format: <rule_id> <TAB> <threshold> <TAB> <comment>
+# threshold: IGNORE | INFO | WARN | FAIL | OFF
+10049	IGNORE	Variant "Non-Storable Content" — fires because middleware sets Cache-Control: no-store. The original WARN ("Storable and Cacheable") was the real finding; this one is informational confirmation that the fix is in place.
+90005	IGNORE	Rule checks for Sec-Fetch-Dest on incoming requests. That header is browser-sent; ZAP (a scanner) doesn't include it. Cannot be fixed server-side — it's a meta-warning about the scanner itself, not the app.
