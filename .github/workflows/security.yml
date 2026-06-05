@@ -32,10 +32,26 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: gitleaks-report
+          name: sarif-gitleaks
           path: results.sarif
           if-no-files-found: ignore
           retention-days: 14
+
+      - name: Job summary
+        if: always()
+        run: |
+          {
+            echo "## Gitleaks (secrets scan)"
+            echo ""
+            if [ -f results.sarif ]; then
+              count=$(jq '[.runs[].results[]] | length' results.sarif 2>/dev/null || echo 0)
+              echo "**Findings:** $count"
+            else
+              echo "_No SARIF produced (likely clean scan)._"
+            fi
+            echo ""
+            echo "[View in Code Scanning](https://github.com/${GITHUB_REPOSITORY}/security/code-scanning?query=tool:gitleaks)"
+          } >> "$GITHUB_STEP_SUMMARY"
 
   sast:
     name: SAST (semgrep)
@@ -69,9 +85,25 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: semgrep-sarif
+          name: sarif-semgrep
           path: semgrep.sarif
           retention-days: 14
+
+      - name: Job summary
+        if: always()
+        run: |
+          {
+            echo "## Semgrep (SAST)"
+            echo ""
+            if [ -f semgrep.sarif ]; then
+              count=$(jq '[.runs[].results[]] | length' semgrep.sarif 2>/dev/null || echo 0)
+              echo "**Findings:** $count"
+            else
+              echo "_No SARIF produced._"
+            fi
+            echo ""
+            echo "[View in Code Scanning](https://github.com/${GITHUB_REPOSITORY}/security/code-scanning?query=tool:Semgrep)"
+          } >> "$GITHUB_STEP_SUMMARY"
 
   sca:
     name: SCA (trivy fs-scan)
@@ -107,6 +139,22 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: trivy-sarif
+          name: sarif-trivy-fs
           path: trivy-results.sarif
           retention-days: 14
+
+      - name: Job summary
+        if: always()
+        run: |
+          {
+            echo "## Trivy filesystem (SCA)"
+            echo ""
+            if [ -f trivy-results.sarif ]; then
+              count=$(jq '[.runs[].results[]] | length' trivy-results.sarif 2>/dev/null || echo 0)
+              echo "**Findings (HIGH/CRITICAL):** $count"
+            else
+              echo "_No SARIF produced._"
+            fi
+            echo ""
+            echo "[View in Code Scanning](https://github.com/${GITHUB_REPOSITORY}/security/code-scanning?query=tool:Trivy)"
+          } >> "$GITHUB_STEP_SUMMARY"

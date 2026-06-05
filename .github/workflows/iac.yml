@@ -144,6 +144,22 @@ jobs:
           path: checkov.sarif/results_sarif.sarif
           retention-days: 14
 
+      - name: Job summary
+        if: always()
+        run: |
+          {
+            echo "## Checkov (IaC policy)"
+            echo ""
+            if [ -f checkov.sarif/results_sarif.sarif ]; then
+              count=$(jq '[.runs[].results[]] | length' checkov.sarif/results_sarif.sarif 2>/dev/null || echo 0)
+              echo "**Findings:** $count"
+            else
+              echo "_No SARIF produced._"
+            fi
+            echo ""
+            echo "[View in Code Scanning](https://github.com/${GITHUB_REPOSITORY}/security/code-scanning?query=tool:Checkov)"
+          } >> "$GITHUB_STEP_SUMMARY"
+
   trivy:
     name: Trivy (tfsec/IaC)
     runs-on: ubuntu-latest
@@ -201,3 +217,27 @@ jobs:
         with:
           sarif_file: trivy-iac.sarif
           category: trivy-iac
+
+      - name: Upload Trivy SARIF as artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sarif-trivy-iac
+          path: trivy-iac.sarif
+          retention-days: 14
+
+      - name: Job summary
+        if: always()
+        run: |
+          {
+            echo "## Trivy (IaC config)"
+            echo ""
+            if [ -f trivy-iac.sarif ]; then
+              count=$(jq '[.runs[].results[]] | length' trivy-iac.sarif 2>/dev/null || echo 0)
+              echo "**Findings (HIGH/CRITICAL):** $count"
+            else
+              echo "_No SARIF produced._"
+            fi
+            echo ""
+            echo "[View in Code Scanning](https://github.com/${GITHUB_REPOSITORY}/security/code-scanning?query=tool:Trivy)"
+          } >> "$GITHUB_STEP_SUMMARY"

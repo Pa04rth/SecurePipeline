@@ -1,4 +1,3 @@
-# tests/security_headers_test.py
 import pytest
 from fastapi.testclient import TestClient
 from app.main import app

@@ -1,0 +1,77 @@
+name: Consolidate scan findings
+
+on:
+  workflow_dispatch: {}
+  workflow_run:
+    workflows: ["Security", "IaC Scans", "DAST (OWASP ZAP baseline)"]
+    types:
+      - completed
+
+concurrency:
+  group: consolidate-${{ github.workflow }}-${{ github.event.workflow_run.head_sha || github.sha }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write
+  actions: read
+
+jobs:
+  consolidate:
+    name: Consolidate findings
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+      - name: Install dependencies
+        run: uv sync --locked --no-dev
+      - name: Install project in development mode
+        run: uv pip install -e .
+
+      - name: Download SARIF artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: "sarif-*"
+          path: sarif-input
+          merge-multiple: true
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Run unified_sarif merge
+        run: unified_sarif merge sarif-input/ --output consolidated.json --markdown pr-comment.md
+
+      - name: Post PR comment
+        if: |
+          github.event.workflow_run.event == 'pull_request' &&
+          github.event.workflow_run.pull_requests[0]
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          path: pr-comment.md
+          header: scan-consolidation
+          number: ${{ github.event.workflow_run.pull_requests[0].number }}
+
+      - name: Upload consolidated findings artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: consolidated-findings
+          path: |
+            consolidated.json
+            pr-comment.md
+          retention-days: 30
+
+      - name: Job summary
+        if: always()
+        run: |
+          {
+            echo "## Consolidated scan findings"
+            echo ""
+            if [ -f pr-comment.md ]; then
+              cat pr-comment.md
+            else
+              echo "_No consolidated report was generated for this run._"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
