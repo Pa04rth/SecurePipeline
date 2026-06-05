@@ -1,0 +1,270 @@
+{
+  "version": "2.1.0",
+  "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "OWASP ZAP",
+          "informationUri": "https://www.zaproxy.org/",
+          "rules": [
+            {
+              "id": "zap-10049",
+              "name": "Non-Storable Content",
+              "shortDescription": {
+                "text": "Non-Storable Content"
+              },
+              "fullDescription": {
+                "text": "<p>The response contents are not storable by caching components such as proxy servers. If the response does not contain sensitive, personal or user-specific information, it may benefit from being stored and cached, to improve performance.</p>"
+              },
+              "helpUri": "<p>https://datatracker.ietf.org/doc/html/rfc7234</p><p>https://datatracker.ietf.org/doc/html/rfc7231</p><p>https://www.w3.org/Protocols/rfc2616/rfc2616-sec13.html</p>",
+              "defaultConfiguration": {
+                "level": "none"
+              }
+            },
+            {
+              "id": "zap-90005",
+              "name": "Sec-Fetch-Dest Header is Missing",
+              "shortDescription": {
+                "text": "Sec-Fetch-Dest Header is Missing"
+              },
+              "fullDescription": {
+                "text": "<p>Specifies how and where the data would be used. For instance, if the value is audio, then the requested resource must be audio data and not any other type of resource.</p>"
+              },
+              "helpUri": "<p>https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Sec-Fetch-Dest</p>",
+              "defaultConfiguration": {
+                "level": "none"
+              }
+            }
+          ]
+        }
+      },
+      "results": [
+        {
+          "ruleId": "zap-10049",
+          "level": "none",
+          "message": {
+            "text": "Non-Storable Content \u2014 http://localhost:8000 (GET)"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/main.py"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "zap-10049",
+          "level": "none",
+          "message": {
+            "text": "Non-Storable Content \u2014 http://localhost:8000/robots.txt (GET)"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/main.py"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "zap-90005",
+          "level": "none",
+          "message": {
+            "text": "Sec-Fetch-Dest Header is Missing \u2014 http://localhost:8000 (GET)"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/main.py"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "zap-90005",
+          "level": "none",
+          "message": {
+            "text": "Sec-Fetch-Dest Header is Missing \u2014 http://localhost:8000/robots.txt (GET)"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/main.py"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "zap-90005",
+          "level": "none",
+          "message": {
+            "text": "Sec-Fetch-Dest Header is Missing \u2014 http://localhost:8000/sitemap.xml (GET)"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/main.py"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "zap-90005",
+          "level": "none",
+          "message": {
+            "text": "Sec-Fetch-Mode Header is Missing \u2014 http://localhost:8000 (GET)"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/main.py"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "zap-90005",
+          "level": "none",
+          "message": {
+            "text": "Sec-Fetch-Mode Header is Missing \u2014 http://localhost:8000/robots.txt (GET)"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/main.py"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "zap-90005",
+          "level": "none",
+          "message": {
+            "text": "Sec-Fetch-Mode Header is Missing \u2014 http://localhost:8000/sitemap.xml (GET)"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/main.py"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "zap-90005",
+          "level": "none",
+          "message": {
+            "text": "Sec-Fetch-Site Header is Missing \u2014 http://localhost:8000 (GET)"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/main.py"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "zap-90005",
+          "level": "none",
+          "message": {
+            "text": "Sec-Fetch-Site Header is Missing \u2014 http://localhost:8000/robots.txt (GET)"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/main.py"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "zap-90005",
+          "level": "none",
+          "message": {
+            "text": "Sec-Fetch-Site Header is Missing \u2014 http://localhost:8000/sitemap.xml (GET)"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/main.py"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "zap-90005",
+          "level": "none",
+          "message": {
+            "text": "Sec-Fetch-User Header is Missing \u2014 http://localhost:8000 (GET)"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/main.py"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "zap-90005",
+          "level": "none",
+          "message": {
+            "text": "Sec-Fetch-User Header is Missing \u2014 http://localhost:8000/robots.txt (GET)"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/main.py"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "zap-90005",
+          "level": "none",
+          "message": {
+            "text": "Sec-Fetch-User Header is Missing \u2014 http://localhost:8000/sitemap.xml (GET)"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/main.py"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

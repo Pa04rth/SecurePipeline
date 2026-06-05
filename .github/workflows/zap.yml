@@ -183,6 +183,26 @@ jobs:
           retention-days: 14
           if-no-files-found: warn
 
+      - name: Job summary
+        if: always()
+        run: |
+          {
+            echo "## OWASP ZAP (DAST baseline)"
+            echo ""
+            echo "**ZAP exit code:** ${{ steps.zap.outputs.zap_exit }} (0=clean, 1=FAIL, 2=WARN, 3=error)"
+            echo ""
+            if [ -f results.sarif ]; then
+              count=$(jq '[.runs[].results[]] | length' results.sarif 2>/dev/null || echo 0)
+              echo "**Findings:** $count"
+            else
+              echo "_No SARIF produced._"
+            fi
+            echo ""
+            echo "[View in Code Scanning](https://github.com/${GITHUB_REPOSITORY}/security/code-scanning?query=tool:OWASP+ZAP)"
+            echo ""
+            echo "Full HTML report available in the \`zap-baseline-reports\` artifact."
+          } >> "$GITHUB_STEP_SUMMARY"
+
       - name: Gate on ZAP exit code
         if: steps.zap.outputs.zap_exit != '0'
         run: |
