@@ -20,16 +20,10 @@ jobs:
   consolidate:
     name: Consolidate findings
     runs-on: ubuntu-latest
-    # Only run for same-repo workflow_run events (not fork PRs) or manual dispatch.
-    # Fork PRs cannot trigger consolidation — this prevents the "pwn request"
-    # pattern where PR-controlled code runs with GITHUB_TOKEN in scope.
     if: |
       github.event_name == 'workflow_dispatch' ||
       github.event.workflow_run.head_repository.full_name == github.repository
     steps:
-      # Safe: the `if:` on this job blocks fork-PR triggers, so the checked-out code
-      # is always from the same repo (trusted contributors). `persist-credentials: false`
-      # is defense-in-depth — the token never lands on disk.
       - uses: actions/checkout@v4 # nosemgrep: yaml.github-actions.security.workflow-run-target-code-checkout.workflow-run-target-code-checkout
         with:
           ref: ${{ github.event.workflow_run.head_sha || github.sha }}
@@ -41,7 +35,9 @@ jobs:
       - name: Install dependencies
         run: uv sync --locked --no-dev
       - name: Install project in development mode
-        run: uv pip install -e .
+        run: |
+          uv pip install -e .
+          echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
 
       - name: Download SARIF artifacts
         uses: actions/download-artifact@v4
