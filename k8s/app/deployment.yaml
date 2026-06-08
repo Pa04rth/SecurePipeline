@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: securepipe-app
+  namespace: default
+  labels:
+    app: securepipe
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: securepipe
+  template:
+    metadata:
+      labels:
+        app: securepipe
+    spec:
+      containers:
+        - name: app
+          image: ghcr.io/pa04rth/securepipeline:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8000
+          envFrom:
+            # Reads the K8s Secret that ESO creates from Vault.
+            # APP_API_KEY shows up here as a regular env var.
+            - secretRef:
+                name: app-secrets
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 3
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 256Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 1000
+            capabilities:
+              drop: ["ALL"]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: securepipe-app
+  namespace: default
+spec:
+  selector:
+    app: securepipe
+  ports:
+    - port: 80
+      targetPort: 8000
+  type: ClusterIP

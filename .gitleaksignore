@@ -1,0 +1,10 @@
+# Gitleaks fingerprints for confirmed false positives.
+# Format: <commit-sha>:<file>:<rule-id>:<line>
+#
+# Adding an entry here says: "I audited this match, it is NOT a real secret,
+# and I am taking responsibility for that judgment." Do NOT add entries to
+# silence real secrets — rotate them instead.
+
+# k8s/vault/bootstrap.sh — demo Vault dev-mode API key value used in Day 8 tutorial.
+# Not a real credential; literal was replaced with $APP_API_KEY env var in a later commit.
+9bca1ddb8453026606c2a1b144f3d8af0a1d20b9:k8s/vault/bootstrap.sh:generic-api-key:52

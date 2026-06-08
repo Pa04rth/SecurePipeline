@@ -20,6 +20,9 @@ jobs:
   consolidate:
     name: Consolidate findings
     runs-on: ubuntu-latest
+    # Only run for same-repo workflow_run events (not fork PRs) or manual dispatch.
+    # Fork PRs cannot trigger consolidation — this prevents the "pwn request"
+    # pattern where PR-controlled code runs with GITHUB_TOKEN in scope.
     if: |
       github.event_name == 'workflow_dispatch' ||
       github.event.workflow_run.head_repository.full_name == github.repository
