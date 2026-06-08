@@ -1,4 +1,6 @@
-from fastapi import FastAPI
+import os
+
+from fastapi import FastAPI, Header, HTTPException
 from starlette.middleware.base import BaseHTTPMiddleware
 
 
@@ -33,3 +35,13 @@ def create_item():
 @app.get("/health")
 def health_check():
     return {"status": "ok"}
+
+
+@app.get("/whoami")
+def whoami(x_api_key: str | None = Header(default=None)):
+    expected = os.environ.get("APP_API_KEY")
+    if not expected:
+        raise HTTPException(status_code=500, detail="server not configured")
+    if x_api_key != expected:
+        raise HTTPException(status_code=401, detail="bad api key")
+    return {"authenticated": True}
