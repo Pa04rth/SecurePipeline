@@ -20,6 +20,11 @@ VAULT_TOKEN="${VAULT_TOKEN:-root}"
 ESO_NAMESPACE="${ESO_NAMESPACE:-external-secrets}"
 ESO_SERVICE_ACCOUNT="${ESO_SERVICE_ACCOUNT:-external-secrets}"
 
+# Demo secret value. Pass in via env to override:
+#   APP_API_KEY=mykey bash k8s/vault/bootstrap.sh
+# Default is an obvious placeholder so nothing real ever lands in git history.
+APP_API_KEY="${APP_API_KEY:-CHANGE_ME_DEMO_VALUE}"
+
 exec_vault() {
   kubectl exec -n "$VAULT_NS" "$VAULT_POD" -- \
     sh -c "VAULT_TOKEN=$VAULT_TOKEN $*"
@@ -49,7 +54,7 @@ exec_vault "vault write auth/kubernetes/role/app \
   ttl=24h"
 
 echo ">> 5/5 Writing the initial demo secret"
-exec_vault "vault kv put secret/app api_key=devkey-abc123"
+exec_vault "vault kv put secret/app api_key=$APP_API_KEY"
 
 echo ""
 echo "Bootstrap complete. Verify with:"
