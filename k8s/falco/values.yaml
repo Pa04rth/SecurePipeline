@@ -1,0 +1,58 @@
+driver:
+  kind: modern_ebpf
+  modernEbpf:
+    leastPrivileged: false
+
+falco:
+  json_output: true
+  json_include_output_property: true
+  json_include_tags_property: true
+
+  log_level: info
+  priority: notice
+
+  rules_files:
+    - /etc/falco/falco_rules.yaml
+    - /etc/falco/falco_rules.local.yaml
+    - /etc/falco/rules.d
+
+  buffered_outputs: true
+  outputs_queue:
+    capacity: 0
+
+falcoctl:
+  artifact:
+    install:
+      enabled: true
+    follow:
+      enabled: true
+  config:
+    artifact:
+      install:
+        refs:
+          - falco-rules:3
+      follow:
+        refs:
+          - falco-rules:3
+
+# --- DaemonSet sizing ---
+resources:
+  requests:
+    cpu: 100m
+    memory: 512Mi
+  limits:
+    memory: 1Gi
+
+# --- run on every node, including tainted ones ---
+tolerations:
+  - effect: NoSchedule
+    operator: Exists
+  - effect: NoExecute
+    operator: Exists
+
+serviceMonitor:
+  create: false
+
+# --- Falcosidekick disabled for now; turn on to enable Slack/webhooks/UI ---
+falcosidekick:
+  enabled: true
