@@ -1,0 +1,80 @@
+customRules:
+  custom-rules.yaml: |
+    # Detect crypto mining processes
+    - rule: Detect Crypto Mining
+      desc: Detect common crypto mining processes in containers
+      condition: >
+        spawned_process and container and
+        (proc.name in (xmrig, minerd, minergate, stratum, cpuminer) or
+         proc.cmdline contains "stratum+tcp" or
+         proc.cmdline contains "cryptonight")
+      output: >
+        Crypto mining process detected
+        (user=%user.name container=%container.name
+        image=%container.image.repository command=%proc.cmdline
+        pod=%k8s.pod.name namespace=%k8s.ns.name)
+      priority: CRITICAL
+      tags: [crypto, mining, security]
+
+    # Detect reverse shell
+    - rule: Reverse Shell in Container
+      desc: Detect reverse shell connections from containers
+      condition: >
+        spawned_process and container and
+        ((proc.name = "bash" or proc.name = "sh") and
+        (proc.cmdline contains "/dev/tcp/" or
+         proc.cmdline contains "nc -e" or
+         proc.cmdline contains "ncat -e"))
+      output: >
+        Reverse shell detected
+        (user=%user.name container=%container.name
+        image=%container.image.repository command=%proc.cmdline
+        pod=%k8s.pod.name namespace=%k8s.ns.name)
+      priority: CRITICAL
+      tags: [shell, reverse_shell, security]
+
+    # Detect interactive shell
+    - rule: Interactive Shell in Container
+      desc: Detect interactive shells spawned inside containers
+      condition: >
+        spawned_process and container and shell_procs and proc.tty != 0 and
+        not k8s.ns.name in (kube-system, monitoring)
+      output: >
+        Interactive shell detected
+        (user=%user.name container=%container.name
+        image=%container.image.repository command=%proc.cmdline
+        terminal=%proc.tty pod=%k8s.pod.name namespace=%k8s.ns.name)
+      priority: WARNING
+      tags: [shell, interactive, security]
+
+    # Detect sensitive file access
+    - rule: Read Sensitive Files in Container
+      desc: Detect reads to sensitive files like /etc/shadow
+      condition: >
+        open_read and container and
+        fd.name in (/etc/shadow, /etc/passwd, /etc/sudoers) and
+        not proc.name in (login, passwd, su, sudo, sshd)
+      output: >
+        Sensitive file read
+        (user=%user.name file=%fd.name container=%container.name
+        image=%container.image.repository
+        pod=%k8s.pod.name namespace=%k8s.ns.name)
+      priority: WARNING
+      tags: [filesystem, sensitive, security]
+
+    # Project-specific: SecurePipe app pod should never read its own SA token.
+    # ESO is the only entity that should be using SA tokens to talk to Vault.
+    # If our app pod ever reads /var/run/secrets/.../token, it's likely
+    # compromised and trying to authenticate to the cluster API or to Vault.
+    - rule: SecurePipe App Reading Service Account Token
+      desc: The FastAPI app should never need its own SA token. If it reads it, treat as compromise.
+      condition: >
+        open_read and container and
+        fd.name endswith "/serviceaccount/token" and
+        k8s.pod.name startswith "securepipe-app"
+      output: >
+        SecurePipe app read its SA token — possible token theft attempt
+        (file=%fd.name pod=%k8s.pod.name namespace=%k8s.ns.name
+        proc=%proc.cmdline user=%user.name)
+      priority: ERROR
+      tags: [project, securepipe, identity, token-theft]
