@@ -1,0 +1,40 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: securepipeline
+  namespace: argocd
+spec:
+  description: "Default project with basic restrictions"
+
+  # Only allow repos from your organization
+  sourceRepos:
+    - "https://github.com/Pa04rth/SecurePipeline"
+
+  # Only allow the local cluster, non-system namespaces
+  destinations:
+    - server: "https://kubernetes.default.svc"
+      namespace: "default"
+    - server: "https://kubernetes.default.svc"
+      namespace: "dev-*"
+
+  # No cluster-scoped resources
+  clusterResourceWhitelist: []
+
+  # GPG key IDs whose commits Argo will accept for deployment.
+  # Includes your personal signing key AND GitHub's web-flow key (so PR squash-merges work).
+  signatureKeys:
+    - keyID: 9905D095C1B30594
+    - keyID: 4AEE18F83AFDEB23
+
+  # Basic namespace resources only
+  namespaceResourceWhitelist:
+    - group: ""
+      kind: ConfigMap
+    - group: ""
+      kind: Service
+    - group: apps
+      kind: Deployment
+    - group: networking.k8s.io
+      kind: Ingress
+    - group: external-secrets.io
+      kind: ExternalSecret
