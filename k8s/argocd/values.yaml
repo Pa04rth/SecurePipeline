@@ -1,0 +1,29 @@
+# Top-level keys you want to configure:
+global:
+  domain: argocd.local
+
+server:
+  service:
+    type: ClusterIP
+
+  extraArgs:
+    - --insecure
+
+configs:
+  params:
+    server.insecure: true
+  cm:
+    timeout.reconciliation: 180s
+
+# Disable HA components for a single-node kind cluster
+controller:
+  replicas: 1
+redis-ha:
+  enabled: false
+redis:
+  enabled: true
+
+dex:
+  enabled: false
+notifications:
+  enabled: false
