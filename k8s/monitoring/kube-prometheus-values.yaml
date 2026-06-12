@@ -1,0 +1,66 @@
+# Helm overrides for kube-prometheus-stack on a kind cluster.
+# Only contains keys that differ from chart defaults — Helm merges with defaults.
+#
+# Chart: https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack
+
+# --- Prometheus: lighten the load for single-node kind ---
+prometheus:
+  prometheusSpec:
+    # Default 15d retention fills small disks; 6h is plenty for demo work.
+    retention: 6h
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        memory: 1Gi
+    # Pick up ServiceMonitors from ANY namespace (default is just this release's namespace).
+    serviceMonitorSelectorNilUsesHelmValues: false
+    podMonitorSelectorNilUsesHelmValues: false
+    ruleSelectorNilUsesHelmValues: false
+
+# --- Grafana: known admin password so we don't fish in Secrets every time ---
+grafana:
+  adminPassword: "admin-day11"
+  service:
+    type: ClusterIP
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      memory: 512Mi
+  # Auto-discover dashboards in ConfigMaps labelled grafana_dashboard=1, in ANY namespace.
+  sidecar:
+    dashboards:
+      enabled: true
+      label: grafana_dashboard
+      labelValue: "1"
+      searchNamespace: ALL
+
+# --- AlertManager: keep it but trim resources ---
+alertmanager:
+  alertmanagerSpec:
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        memory: 128Mi
+    retention: 24h
+
+# --- Node-exporter / kube-state-metrics: defaults are fine ---
+nodeExporter:
+  enabled: true
+kubeStateMetrics:
+  enabled: true
+
+# --- Disable stuff kind doesn't expose ---
+kubeEtcd:
+  enabled: false
+kubeControllerManager:
+  enabled: false
+kubeScheduler:
+  enabled: false
+kubeProxy:
+  enabled: false

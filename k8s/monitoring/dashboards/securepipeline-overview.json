@@ -1,0 +1,46 @@
+{
+  "title": "Vault Cluster Health",
+  "panels": [
+    {
+      "title": "Seal Status",
+      "type": "stat",
+      "targets": [
+        {
+          "expr": "sum(vault_core_unsealed{job=\"vault\"})",
+          "legendFormat": "Unsealed Nodes"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "steps": [
+              { "value": 0, "color": "red" },
+              { "value": 2, "color": "yellow" },
+              { "value": 3, "color": "green" }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "title": "Request Latency P99 (ms)",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "vault_core_handle_request{quantile=\"0.99\"}",
+          "legendFormat": "P99 Latency - {{ instance }}"
+        }
+      ]
+    },
+    {
+      "title": "Active Leases",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "vault_expire_num_leases",
+          "legendFormat": "{{ instance }}"
+        }
+      ]
+    }
+  ]
+}

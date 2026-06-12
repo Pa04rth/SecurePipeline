@@ -1,0 +1,18 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: falco
+  namespace: monitoring
+  labels:
+    release: kube-prometheus-stack
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: falco
+  namespaceSelector:
+    matchNames:
+      - falco
+  endpoints:
+    - port: metrics # NOT "http-metrics" — Falco service exposes "metrics"
+      interval: 30s
+      path: /metrics

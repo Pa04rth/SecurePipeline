@@ -1,0 +1,23 @@
+# Helm overrides for Promtail on a kind cluster.
+# Defaults are fine for log shipping; we only need to tell it WHERE Loki is
+# and trim resource asks.
+#
+# Chart: https://github.com/grafana/helm-charts/tree/main/charts/promtail
+
+config:
+  # In-cluster DNS for Loki single-binary mode.
+  clients:
+    - url: http://loki.monitoring.svc:3100/loki/api/v1/push
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    memory: 128Mi
+
+# Promtail is a DaemonSet — needs to tolerate any node taint to actually run
+# on every node (kind's control-plane node has a NoSchedule taint by default).
+tolerations:
+  - effect: NoSchedule
+    operator: Exists

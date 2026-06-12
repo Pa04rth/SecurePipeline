@@ -1,0 +1,62 @@
+# Helm overrides for Loki on a kind cluster.
+# Uses single-binary mode: one pod, in-memory chunk index + filesystem storage.
+# Production setup would use distributed mode + S3/GCS — out of scope for Day 11.
+#
+# Chart: https://github.com/grafana/loki/tree/main/production/helm/loki
+
+deploymentMode: SingleBinary
+
+loki:
+  # Skip auth for in-cluster use.
+  auth_enabled: false
+  commonConfig:
+    replication_factor: 1
+  schemaConfig:
+    configs:
+      - from: "2024-01-01"
+        store: tsdb
+        object_store: filesystem
+        schema: v13
+        index:
+          prefix: loki_index_
+          period: 24h
+  storage:
+    type: filesystem
+
+singleBinary:
+  replicas: 1
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      memory: 512Mi
+  persistence:
+    enabled: true
+    size: 2Gi
+
+# Disable everything not used by single-binary mode.
+backend:
+  replicas: 0
+read:
+  replicas: 0
+write:
+  replicas: 0
+chunksCache:
+  enabled: false
+resultsCache:
+  enabled: false
+
+# No load-balancer needed on kind.
+gateway:
+  enabled: false
+
+# Disable the test pod that ships with the chart.
+test:
+  enabled: false
+lokiCanary:
+  enabled: false
+
+# Don't install the bundled MinIO; we use filesystem storage.
+minio:
+  enabled: false
