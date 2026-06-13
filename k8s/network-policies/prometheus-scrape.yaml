@@ -1,0 +1,98 @@
+# Allow Prometheus to reach the metrics endpoints it scrapes.
+#
+# Prometheus pulls metrics from many services across many namespaces (Falco
+# in falco/, Argo CD in argocd/, app in default/, kube-state-metrics here).
+# Default-deny blocks all of that, so we have to allow each direction.
+#
+# This is intentionally permissive on the egress side (any namespace) because
+# Prometheus needs to scrape everywhere. We scope by port instead.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: prometheus-scrape
+  namespace: monitoring
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: prometheus
+  policyTypes:
+    - Egress
+  egress:
+    # Allow scraping pods on common metrics ports across the cluster.
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: TCP
+          port: 8000   # securepipe-app
+        - protocol: TCP
+          port: 8080   # generic /metrics
+        - protocol: TCP
+          port: 8443   # secure /metrics
+        - protocol: TCP
+          port: 8765   # Falco
+        - protocol: TCP
+          port: 8082   # Kyverno
+        - protocol: TCP
+          port: 8200   # Vault (once telemetry auth is figured out)
+        - protocol: TCP
+          port: 9090   # Prometheus self-scrape, kube-state-metrics
+        - protocol: TCP
+          port: 9100   # node-exporter
+    # Allow scraping the Kubernetes API server (kubelet metrics).
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+      ports:
+        - protocol: TCP
+          port: 443
+        - protocol: TCP
+          port: 6443
+        - protocol: TCP
+          port: 10250  # kubelet metrics
+---
+# Let Grafana reach Prometheus + Loki for queries.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: grafana-to-datasources
+  namespace: monitoring
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: grafana
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: prometheus
+      ports:
+        - protocol: TCP
+          port: 9090
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: loki
+      ports:
+        - protocol: TCP
+          port: 3100
+---
+# Let Prometheus's UI be reached by port-forward (kubectl proxy uses API server).
+# Anyone reaching it via port-forward connects through the API server, which
+# appears as cluster traffic — allow from any pod for simplicity.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: prometheus-ui-ingress
+  namespace: monitoring
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: prometheus
+  policyTypes:
+    - Ingress
+  ingress:
+    - ports:
+        - protocol: TCP
+          port: 9090

@@ -1,0 +1,24 @@
+# Allow securepipe-app pods to reach Vault on port 8200.
+
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: app-to-vault
+  namespace: default
+spec:
+  podSelector:
+    matchLabels:
+      app: securepipe
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: vault
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: vault
+      ports:
+        - protocol: TCP
+          port: 8200
