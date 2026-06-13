@@ -1,0 +1,37 @@
+# Allow Vault to RECEIVE traffic from securepipe-app (default ns) and ESO
+# (external-secrets ns) on port 8200.
+#
+# This is the missing half of the bidirectional flow. The app-to-vault and
+# eso-to-vault policies allow the EGRESS side, but the default-deny in the
+# vault namespace blocks INGRESS unless explicitly allowed here.
+#
+# NetworkPolicy is bidirectional: both sender and receiver namespaces must
+# allow the traffic, or it gets dropped.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: vault-allow-app-and-eso
+  namespace: vault
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: vault
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: default
+          podSelector:
+            matchLabels:
+              app: securepipe
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: external-secrets
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: external-secrets
+      ports:
+        - protocol: TCP
+          port: 8200
