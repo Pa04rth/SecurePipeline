@@ -1,0 +1,32 @@
+# Allow Loki to RECEIVE traffic from Grafana (queries) and Promtail (log pushes).
+#
+# Counterpart to grafana-to-datasources in prometheus-scrape.yaml — that policy
+# allows the egress side; this policy allows the ingress side. NetworkPolicy is
+# bidirectional, so both ends must agree or traffic gets dropped silently.
+#
+# Symptom without this policy: Grafana shows "Unable to connect with Loki" in
+# the data source test panel.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: loki-ingress
+  namespace: monitoring
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: loki
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: grafana
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: promtail
+      ports:
+        - protocol: TCP
+          port: 3100   # HTTP (queries + pushes)
+        - protocol: TCP
+          port: 9095   # gRPC
