@@ -524,6 +524,7 @@ Panels: Falco events per minute by priority; Argo CD apps out of sync count; Kyv
 
 ## Demos
 
+
 The four GIFs below each show one security control of the platform refusing a malicious action. Each is captured from a terminal or the Argo CD UI on the local kind cluster.
 
 ### Kyverno blocks an unsigned image at admission
@@ -547,8 +548,6 @@ A compromised pod reads `/etc/shadow` — a syscall that the kernel sees and the
 ### NetworkPolicies block lateral movement
 
 A debug pod with no allowlist entry tries to reach Vault. With Calico-enforced `NetworkPolicy` (default-deny baseline + workload-scoped bidirectional allowlists), the packet is dropped at the kernel level. The legitimate `securepipe-app` pod, which has both the egress allow on its side AND the matching ingress allow on Vault's side, reaches the same endpoint and returns the Vault health JSON in milliseconds.
-
-![NetworkPolicies block lateral movement](docs/gifs/netpol-blocks-debug-pod.gif)
 
 ---
 
