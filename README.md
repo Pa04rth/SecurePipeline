@@ -2,7 +2,7 @@
 
 A reference DevSecOps platform that wires together the security controls a typical CI/CD pipeline misses one at a time. Built around a sample FastAPI service, every stage from commit to runtime carries an enforced gate, every artifact is signed, every secret is fetched from Vault at runtime, and every event lands in one Grafana pane.
 
-**Full writeup with mental-decision notes and architecture details:** [`<blog URL goes here>`](https://your-site/securepipe)
+**Full writeup with mental-decision notes and architecture details:** [`<blog URL goes here>`](https://www.parthsohaney.online/blog)
 
 It runs locally on `kind` for development and is provisioned for AWS EKS via Terraform. None of this is novel research — what is here is _thirteen layers wired so they reinforce each other instead of fighting each other_.
 
@@ -525,36 +525,6 @@ Panels: Falco events per minute by priority; Argo CD apps out of sync count; Kyv
 ## Demos
 
 The four GIFs below each show one security gate enforcing the policy. Each is captured in a terminal recording at 1080p.
-
-<!--
-TO PRODUCE THESE GIFS:
-  Tool: ScreenToGif (winget install ScreenToGif). Capture at 15 fps.
-  Save each as docs/gifs/<name>.gif. Keep each under 5 MB.
-
-  1. kyverno-rejects-unsigned.gif
-     - With Kyverno's verifyImages policy active, run:
-       kubectl run nginx --image=nginx --restart=Never
-     - The pod creation fails with "image verification failed"
-     - Capture from the kubectl command to the rejection message (~10s)
-
-  2. argocd-rejects-unsigned-commit.gif
-     - With Argo CD's signatureKeys configured, force an unsigned commit:
-       git commit --allow-empty --no-gpg-sign -m "demo unsigned"
-       git push
-     - Open Argo CD UI, click the app, click Refresh
-     - Capture the UI showing "Signature verification failed" (~15s)
-
-  3. falco-fires-on-shell.gif
-     - Split terminal (Windows Terminal panes work):
-       Top:   kubectl exec deploy/securepipe-app -- cat /etc/passwd
-       Bottom: kubectl logs -n falco daemonset/falco -c falco -f | findstr Warning
-     - Capture the moment the event appears in the bottom pane (~8s)
-
-  4. netpol-blocks-debug-pod.gif
-     - With network policies applied, run from a debug pod:
-       kubectl exec debug -- curl -m 5 http://vault.vault.svc:8200/v1/sys/health
-     - Capture the timeout (~10s)
--->
 
 ![Kyverno rejects an unsigned image](docs/gifs/kyverno-rejects-unsigned.gif)
 ![Argo CD refuses an unsigned commit](docs/gifs/argocd-rejects-unsigned-commit.gif)
