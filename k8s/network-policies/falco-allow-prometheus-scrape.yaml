@@ -1,0 +1,30 @@
+# Allow Prometheus to scrape Falco's metrics endpoint.
+#
+# Falco's namespace has default-deny ingress. Without this policy the
+# Prometheus target shows "down" with "connection refused" even though
+# the ServiceMonitor is correctly configured.
+#
+# Counterpart on the Prometheus side: the prometheus-scrape policy
+# (in prometheus-scrape.yaml) which allows the egress to port 8765.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: falco-allow-prometheus-scrape
+  namespace: falco
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: falco
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: monitoring
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: prometheus
+      ports:
+        - protocol: TCP
+          port: 8765

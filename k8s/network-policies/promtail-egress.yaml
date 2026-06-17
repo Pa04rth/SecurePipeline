@@ -1,0 +1,28 @@
+# Allow Promtail to push logs to Loki.
+#
+# Promtail and Loki both live in the monitoring namespace, which has
+# default-deny ingress AND egress. The loki-ingress policy lets Loki
+# accept the incoming traffic; this policy lets Promtail send it.
+#
+# Without this, Promtail's metrics show `promtail_request_duration_seconds`
+# but `promtail_sent_entries_total` stays at zero — and no Falco/app logs
+# ever reach Grafana.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: promtail-egress
+  namespace: monitoring
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: promtail
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: loki
+      ports:
+        - protocol: TCP
+          port: 3100
