@@ -524,11 +524,30 @@ Panels: Falco events per minute by priority; Argo CD apps out of sync count; Kyv
 
 ## Demos
 
-The four GIFs below each show one security gate enforcing the policy. Each is captured in a terminal recording at 1080p.
+The four GIFs below each show one security control of the platform refusing a malicious action. Each is captured from a terminal or the Argo CD UI on the local kind cluster.
+
+### Kyverno blocks an unsigned image at admission
+
+An attacker pushes a tampered image to the registry and tries to deploy it. Kyverno's `ClusterPolicy` calls into Sigstore Rekor to verify the cosign signature for the image digest. Because the workflow identity does not match the keyless attestor regex (the build workflow's OIDC subject), Kyverno rejects the pod before kubelet ever pulls the image. The Pod never reaches `Pending`.
 
 ![Kyverno rejects an unsigned image](docs/gifs/kyverno-rejects-unsigned.gif)
+
+### Argo CD refuses to deploy an unsigned commit
+
+A commit lands on the tracked branch without a GPG signature. Argo CD's `AppProject.signatureKeys` enforces that every commit it deploys must be signed by an allowed key (developer key + GitHub web-flow merge-commit key). The application's sync status flips to `ComparisonError` with `source is not signed by a permitted GPG key`, and no manifests are applied to the cluster.
+
 ![Argo CD refuses an unsigned commit](docs/gifs/argocd-rejects-unsigned-commit.gif)
+
+### Falco detects a shell spawning inside a container
+
+A compromised pod reads `/etc/shadow` — a syscall that the kernel sees and the application's own logs would never reveal. Falco's eBPF probe matches against the `Read sensitive file untrusted` rule and emits a structured JSON event within sub-second latency. The event lands on stdout, is shipped to Loki by Promtail, and is forwarded to Slack by Falcosidekick if the priority is `Warning` or higher.
+
 ![Falco detects a shell in a container](docs/gifs/falco-fires-on-shell.gif)
+
+### NetworkPolicies block lateral movement
+
+A debug pod with no allowlist entry tries to reach Vault. With Calico-enforced `NetworkPolicy` (default-deny baseline + workload-scoped bidirectional allowlists), the packet is dropped at the kernel level. The legitimate `securepipe-app` pod, which has both the egress allow on its side AND the matching ingress allow on Vault's side, reaches the same endpoint and returns the Vault health JSON in milliseconds.
+
 ![NetworkPolicies block lateral movement](docs/gifs/netpol-blocks-debug-pod.gif)
 
 ---
