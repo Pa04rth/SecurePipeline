@@ -2,7 +2,7 @@
 
 A reference DevSecOps platform that wires together the security controls a typical CI/CD pipeline misses one at a time. Built around a sample FastAPI service, every stage from commit to runtime carries an enforced gate, every artifact is signed, every secret is fetched from Vault at runtime, and every event lands in one Grafana pane.
 
-**Full writeup with mental-decision notes and architecture details:** [`https://www.parthsohaney.online/blog`](https://www.parthsohaney.online/blog)
+<!-- **Full writeup with mental-decision notes and architecture details:** [`https://www.parthsohaney.online/blog`](https://www.parthsohaney.online/blog) -->
 
 It runs locally on `kind` for development and is provisioned for AWS EKS via Terraform. None of this is novel research — what is here is _thirteen layers wired so they reinforce each other instead of fighting each other_.
 
