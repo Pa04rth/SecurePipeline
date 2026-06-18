@@ -1,4 +1,4 @@
-# SecurePipe
+# SecurePipeline
 
 A reference DevSecOps platform that wires together the security controls a typical CI/CD pipeline misses one at a time. Built around a sample FastAPI service, every stage from commit to runtime carries an enforced gate, every artifact is signed, every secret is fetched from Vault at runtime, and every event lands in one Grafana pane.
 
